@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cleopatra Ink — Call Log</title>
+<style>
+  body { margin: 0; padding: 24px 12px; background: #0e0f11; display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+
+<div style="max-width: 480px; margin: 0 auto; font-family: system-ui, -apple-system, sans-serif; background: #16171a; color: #e8e8ea; border-radius: 14px; padding: 20px; border: 1px solid #2a2b2f;">
+
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+    <div style="width:34px;height:34px;border-radius:8px;background:#2a2b2f;display:flex;align-items:center;justify-content:center;font-size:16px;">📋</div>
+    <div>
+      <div style="font-size:15px; font-weight:600;">Cleopatra Ink — Call Log</div>
+      <div style="font-size:12px; color:#8a8b90;">SS yükle, otomatik doldursun, kontrol et, kopyala</div>
+    </div>
+  </div>
+
+  <div id="dropzone" style="border:1.5px dashed #3a3b40; border-radius:10px; padding:16px; text-align:center; margin-bottom:16px; cursor:pointer; transition: border-color .15s;">
+    <div id="dz-idle">
+      <div style="font-size:22px; margin-bottom:4px;">🖼️</div>
+      <div style="font-size:13px; color:#c4c5ca;">Timely / Booknow ekran görüntüsünü yapıştır ya da seç</div>
+      <div style="font-size:11px; color:#6c6d72; margin-top:2px;">Ctrl+V ile yapıştırabilirsin</div>
+    </div>
+    <div id="dz-loading" style="display:none; font-size:13px; color:#8ab4ff;">🔄 Okunuyor...</div>
+    <div id="dz-done" style="display:none; font-size:13px; color:#7ee787;">✓ Alanlar otomatik dolduruldu, kontrol et</div>
+    <div id="dz-error" style="display:none; font-size:12px; color:#ff8080;"></div>
+    <input type="file" id="fileinput" accept="image/*" style="display:none;">
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Agent</label>
+      <select id="agent" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px;">
+        <option>Berra Yanar</option>
+        <option selected>Yağız Ege Dokcan</option>
+        <option>Moustafa Abdalla</option>
+        <option>Khaled Elboraie</option>
+        <option>Cihan</option>
+        <option>Uğur</option>
+        <option>Nawaf Gaber</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Stüdyo</label>
+      <select id="studio" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px;">
+        <option>Atlanta</option><option>Baltimore</option><option>Buffalo</option>
+        <option>Chandler</option><option>Cleveland</option><option>Columbus</option>
+        <option>Dayton City</option><option>Fayetteville</option><option>Fort Lauderdale</option>
+        <option>Fort Myers</option><option>Indianapolis</option><option>Jacksonville</option>
+        <option>Key West</option><option>Madison</option><option>Melbourne (FL)</option>
+        <option>Oklahoma City</option><option>Pittsburgh</option><option>Raleigh</option>
+        <option>Santa Barbara</option><option>Sarasota</option><option>Seattle</option>
+        <option>St. Augustine</option><option>St. Pete</option><option>Tampa</option>
+        <option>West Palm Beach</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Call date</label>
+      <input id="calldate" type="text" placeholder="8/9/2026" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px; box-sizing:border-box;">
+    </div>
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Appt date</label>
+      <input id="apptdate" type="text" placeholder="8/14/2026" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px; box-sizing:border-box;">
+    </div>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Müşteri adı</label>
+    <input id="custname" type="text" placeholder="Dani Kane" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px; box-sizing:border-box;">
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Telefon</label>
+      <input id="phone" type="text" placeholder="4105075844" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px; box-sizing:border-box;">
+    </div>
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Email</label>
+      <input id="email" type="text" placeholder="dani@yahoo.com" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px; box-sizing:border-box;">
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Channel</label>
+      <select id="channel" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px;">
+        <option>Landing Page</option><option>Facebook</option><option>Mail</option>
+        <option>Instagram</option><option>TikTok</option><option>Website</option>
+        <option>Walk-In</option><option>Phone Call</option>
+        <option>Tattoo Artist Account</option><option>Other</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Tür</label>
+      <select id="apptType" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px;">
+        <option>Tattoo</option><option>Piercing</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Call reason</label>
+      <select id="reason" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px;">
+        <option>Confirmation</option>
+        <option>Reminder</option>
+        <option>Follow-up</option>
+        <option>Booknow Lead</option>
+        <option>Regain</option>
+        <option>Pencilled-In Mail</option>
+        <option>Pencilled-In Landing</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Call outcome</label>
+      <select id="outcome" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px;">
+        <option>Scheduled</option><option>Rescheduled</option><option>Confirmed</option>
+        <option>Scheduled by Mistake</option><option>Cancelled</option><option>Wrong Number</option>
+        <option>Didn't Pick Up</option><option selected>VM Left</option>
+        <option>Potential Customer</option><option>Already Confirmed</option>
+        <option>Call Back Later</option><option>Do Not Call</option>
+        <option>Not Interested</option><option>Pending Call</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+    <div>
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Need call back</label>
+      <select id="callback" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px;">
+        <option>No</option><option>Yes</option>
+      </select>
+    </div>
+    <div id="cbdate-wrap" style="display:none;">
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:4px;">Call back date</label>
+      <input id="cbdate" type="text" placeholder="M/D/YYYY" style="width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:8px; font-size:13px; box-sizing:border-box;">
+    </div>
+  </div>
+
+  <button id="copybtn" type="button" style="width:100%; background:#3a6df0; color:#fff; border:none; border-radius:9px; padding:11px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+    📋 <span id="copylabel">TSV satırını kopyala</span>
+  </button>
+
+  <div id="preview" style="margin-top:12px; font-size:11px; color:#6c6d72; background:#1a1b1e; border-radius:8px; padding:8px 10px; word-break:break-all; line-height:1.6;"></div>
+
+  <textarea id="hiddenarea" style="position:absolute; left:-9999px;"></textarea>
+</div>
+
+<script>
+(function() {
+  var el = function(id) { return document.getElementById(id); };
+  var outcome = el('outcome'), callback = el('callback'), cbWrap = el('cbdate-wrap'), cbDate = el('cbdate');
+  var btn = el('copybtn'), label = el('copylabel'), preview = el('preview'), hidden = el('hiddenarea');
+  var TAB = String.fromCharCode(9);
+
+  var dropzone = el('dropzone'), fileinput = el('fileinput');
+  var dzIdle = el('dz-idle'), dzLoading = el('dz-loading'), dzDone = el('dz-done'), dzError = el('dz-error');
+
+  var STUDIO_LIST = ['Atlanta','Baltimore','Buffalo','Chandler','Cleveland','Columbus','Dayton City','Fayetteville','Fort Lauderdale','Fort Myers','Indianapolis','Jacksonville','Key West','Madison','Melbourne (FL)','Oklahoma City','Pittsburgh','Raleigh','Santa Barbara','Sarasota','Seattle','St. Augustine','St. Pete','Tampa','West Palm Beach'];
+  var CHANNEL_MAP = {
+    'Landing Page Design':'Landing Page','Facebook Design':'Facebook','E-Mail Design':'Mail',
+    'Instagram Design':'Instagram','TikTok Design':'TikTok','Walkin Design':'Walk-In',
+    'Phone Call Design':'Phone Call'
+  };
+  var STUDIO_MAP = {
+    'Cleopatra Ink Dayton':'Dayton City','Cleopatra Ink Chandler':'Chandler',
+    'Cleopatra Ink Jacksonville':'Jacksonville','Cleopatra Ink Fort Pierce':'Fort Pierce',
+    'Cleopatra Ink Key West':'Key West','Cleopatra Ink Melbourne':'Melbourne (FL)',
+    'Cleopatra Ink Orlando Lake Bueno Vista':'Orlando Lake','Cleopatra Ink Santa Barbara':'Santa Barbara',
+    'Cleopatra Ink St. Pete':'St. Pete','Cleopatra Ink St. Augustine':'St. Augustine',
+    'Cleopatra Ink West Palm Beach':'West Palm Beach'
+  };
+
+  function todayStr() {
+    var d = new Date();
+    return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+  }
+  el('calldate').value = todayStr();
+
+  function cleanPhone(v) {
+    var digits = (v || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+    return digits.length ? digits : 'N/A';
+  }
+
+  function setSelectValue(selectEl, value) {
+    if (!value) return;
+    var opts = selectEl.options;
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].value.toLowerCase() === String(value).toLowerCase()) {
+        selectEl.selectedIndex = i;
+        return;
+      }
+    }
+  }
+
+  function applyExtracted(data) {
+    if (data.appointmentDate) el('apptdate').value = data.appointmentDate;
+    if (data.customerName) el('custname').value = data.customerName;
+    if (data.phone) el('phone').value = cleanPhone(data.phone);
+    if (data.email) el('email').value = data.email;
+    if (data.studio) {
+      var mapped = STUDIO_MAP[data.studio] || data.studio;
+      setSelectValue(el('studio'), mapped);
+    }
+    if (data.channel) {
+      var mappedCh = CHANNEL_MAP[data.channel] || data.channel;
+      setSelectValue(el('channel'), mappedCh);
+    }
+    if (data.appointmentType) setSelectValue(el('apptType'), data.appointmentType);
+    render();
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result.split(',')[1]); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function processImage(file) {
+    dzIdle.style.display = 'none';
+    dzError.style.display = 'none';
+    dzDone.style.display = 'none';
+    dzLoading.style.display = 'block';
+
+    try {
+      var base64 = await fileToBase64(file);
+      var mediaType = file.type || 'image/png';
+
+      var response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+              { type: 'text', text: 'Bu bir Timely veya Booknow randevu ekran görüntüsü. İçinden şu bilgileri çıkar ve SADECE geçerli JSON olarak döndür, başka hiçbir metin ekleme:\n{"customerName": "", "phone": "", "email": "", "studio": "", "appointmentDate": "M/D/YYYY formatında, USER LOCAL TIME veya kullanıcının kendi saatine göre, Branch Time DEĞİL", "channel": "Landing Page Design / Facebook Design / E-Mail Design / Instagram Design / TikTok Design / Walkin Design / Phone Call Design gibi ham booking source değeri varsa onu yaz", "appointmentType": "Tattoo veya Piercing, servis adında piercing geçiyorsa Piercing"}\nBilgi yoksa alanı boş string bırak.' }
+            ]
+          }]
+        })
+      });
+
+      if (!response.ok) throw new Error('API hatası: ' + response.status);
+      var data = await response.json();
+      var textBlock = (data.content || []).filter(function(b) { return b.type === 'text'; }).map(function(b) { return b.text; }).join('');
+      var cleaned = textBlock.replace(/```json|```/g, '').trim();
+      var extracted = JSON.parse(cleaned);
+
+      applyExtracted(extracted);
+      dzLoading.style.display = 'none';
+      dzDone.style.display = 'block';
+    } catch (err) {
+      dzLoading.style.display = 'none';
+      dzError.style.display = 'block';
+      dzError.textContent = 'Okunamadı, elle doldur. (' + err.message + ')';
+      console.error(err);
+    }
+  }
+
+  dropzone.addEventListener('click', function() { fileinput.click(); });
+  fileinput.addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) processImage(e.target.files[0]);
+  });
+  document.addEventListener('paste', function(e) {
+    var items = (e.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') === 0) {
+        var file = items[i].getAsFile();
+        if (file) processImage(file);
+        break;
+      }
+    }
+  });
+  dropzone.addEventListener('dragover', function(e) { e.preventDefault(); dropzone.style.borderColor = '#3a6df0'; });
+  dropzone.addEventListener('dragleave', function() { dropzone.style.borderColor = '#3a3b40'; });
+  dropzone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropzone.style.borderColor = '#3a3b40';
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) processImage(e.dataTransfer.files[0]);
+  });
+
+  function syncCallback() {
+    var auto = (outcome.value === 'Potential Customer' || outcome.value === 'Call Back Later');
+    callback.value = auto ? 'Yes' : 'No';
+    cbWrap.style.display = callback.value === 'Yes' ? 'block' : 'none';
+    render();
+  }
+  outcome.addEventListener('change', syncCallback);
+  callback.addEventListener('change', function() {
+    cbWrap.style.display = callback.value === 'Yes' ? 'block' : 'none';
+    render();
+  });
+
+  function buildRow() {
+    var phone = cleanPhone(el('phone').value || '');
+    var email = (el('email').value || '').trim() || 'N/A';
+    return [
+      el('calldate').value || '',
+      el('apptdate').value || '',
+      el('agent').value,
+      el('studio').value,
+      el('channel').value,
+      el('custname').value || '',
+      phone,
+      email,
+      el('apptType').value,
+      el('reason').value,
+      outcome.value,
+      callback.value,
+      (callback.value === 'Yes' ? (cbDate.value || '') : '')
+    ].join(TAB);
+  }
+
+  function render() {
+    preview.textContent = buildRow().split(TAB).join(' | ');
+  }
+
+  ['calldate','apptdate','custname','phone','email','agent','studio','channel','apptType','reason'].forEach(function(id) {
+    el(id).addEventListener('input', render);
+    el(id).addEventListener('change', render);
+  });
+  cbDate.addEventListener('input', render);
+
+  function fallbackCopy(text) {
+    hidden.value = text;
+    hidden.focus();
+    hidden.select();
+    try { document.execCommand('copy'); return true; } catch (e) { return false; }
+  }
+
+  btn.addEventListener('click', function() {
+    var row = buildRow();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(row).then(function() {
+        label.textContent = 'Kopyalandı ✓';
+        setTimeout(function() { label.textContent = 'TSV satırını kopyala'; }, 1500);
+      }, function() {
+        if (fallbackCopy(row)) {
+          label.textContent = 'Kopyalandı ✓';
+          setTimeout(function() { label.textContent = 'TSV satırını kopyala'; }, 1500);
+        } else {
+          label.textContent = 'Kopyalanamadı';
+        }
+      });
+    } else {
+      if (fallbackCopy(row)) {
+        label.textContent = 'Kopyalandı ✓';
+        setTimeout(function() { label.textContent = 'TSV satırını kopyala'; }, 1500);
+      } else {
+        label.textContent = 'Kopyalanamadı';
+      }
+    }
+  });
+
+  syncCallback();
+  render();
+})();
+</script>
+</body>
+</html>
