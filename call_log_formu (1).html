@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cleopatra Ink — Call Log</title>
+<style>
+  body { margin: 0; padding: 24px 12px; background: #0e0f11; display: flex; justify-content: center; font-family: system-ui, -apple-system, sans-serif; }
+  select, input { font-family: inherit; }
+</style>
+</head>
+<body>
+
+<div style="max-width: 560px; width: 100%; color: #e8e8ea;">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="width:34px;height:34px;border-radius:8px;background:#2a2b2f;display:flex;align-items:center;justify-content:center;font-size:16px;">📋</div>
+      <div>
+        <div id="pageTitle" style="font-size:15px; font-weight:600;">Cleopatra Ink — Call Log</div>
+        <div id="pageSub" style="font-size:12px; color:#8a8b90;">Birden fazla SS yükle, kontrol et, hepsini kopyala</div>
+      </div>
+    </div>
+    <button id="modeToggle" type="button" style="flex-shrink:0; background:#1e1f23; color:#c4c5ca; border:1px solid #34353a; border-radius:8px; padding:8px 10px; font-size:11.5px; cursor:pointer; white-space:nowrap;">LP List →</button>
+  </div>
+
+  <div id="callLogSection">
+
+  <div id="dropzone" style="border:1.5px dashed #3a3b40; border-radius:10px; padding:16px; text-align:center; margin-bottom:16px; cursor:pointer;">
+    <div id="dz-idle">
+      <div style="font-size:22px; margin-bottom:4px;">🖼️</div>
+      <div style="font-size:13px; color:#c4c5ca;">Birden fazla Timely / BookNow ekran görüntüsünü yapıştır ya da seç</div>
+      <div style="font-size:11px; color:#6c6d72; margin-top:2px;">Ctrl+V ile birden fazla resim yapıştırabilir, ya da tıklayıp çoklu dosya seçebilirsin</div>
+    </div>
+    <div id="dz-busy" style="display:none; font-size:13px; color:#8ab4ff;"></div>
+    <input type="file" id="fileinput" accept="image/*" multiple style="display:none;">
+  </div>
+
+  <div id="cards"></div>
+
+  <div id="bulkbar" style="display:none; position:sticky; bottom:12px; margin-top:16px;">
+    <button id="copyall" type="button" style="width:100%; background:#3a6df0; color:#fff; border:none; border-radius:9px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(0,0,0,.4);">
+      📋 <span id="copyalllabel">Tümünü kopyala (0)</span>
+    </button>
+  </div>
+
+  <textarea id="hiddenarea" style="position:absolute; left:-9999px;"></textarea>
+
+  </div><!-- /callLogSection -->
+
+  <div id="lpSection" style="display:none;">
+    <div id="lpDropzone" style="border:1.5px dashed #3a3b40; border-radius:10px; padding:16px; text-align:center; margin-bottom:16px; cursor:pointer;">
+      <div id="lpDzIdle">
+        <div style="font-size:22px; margin-bottom:4px;">📧</div>
+        <div style="font-size:13px; color:#c4c5ca;">Landing Page Email Reminder için SS'leri yapıştır ya da seç</div>
+        <div style="font-size:11px; color:#6c6d72; margin-top:2px;">Format: Type-Customer-Studio-Date-Time-Email</div>
+      </div>
+      <div id="lpDzBusy" style="display:none; font-size:13px; color:#8ab4ff;"></div>
+      <input type="file" id="lpFileinput" accept="image/*" multiple style="display:none;">
+    </div>
+
+    <div id="lpEntries"></div>
+
+    <div id="lpTextWrap" style="display:none; margin-bottom:12px;">
+      <label style="font-size:11px; color:#9a9ba0; display:block; margin-bottom:6px;">Düz metin çıktı (kontrol et, gerekirse elle düzenle)</label>
+      <textarea id="lpTextOutput" style="width:100%; min-height:180px; background:#1a1b1e; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:10px; font-size:13px; line-height:1.6; box-sizing:border-box; resize:vertical; white-space:pre;"></textarea>
+    </div>
+
+    <div id="lpBulkbar" style="display:none; position:sticky; bottom:12px; margin-top:16px;">
+      <button id="lpCopyAll" type="button" style="width:100%; background:#3a6df0; color:#fff; border:none; border-radius:9px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(0,0,0,.4);">
+        📋 <span id="lpCopyAllLabel">Tümünü kopyala (0)</span>
+      </button>
+    </div>
+  </div><!-- /lpSection -->
+</div>
+
+<script>
+(function() {
+  var TAB = String.fromCharCode(9);
+  var NL = String.fromCharCode(10);
+  var cardsWrap = document.getElementById('cards');
+  var dropzone = document.getElementById('dropzone');
+  var fileinput = document.getElementById('fileinput');
+  var dzIdle = document.getElementById('dz-idle');
+  var dzBusy = document.getElementById('dz-busy');
+  var bulkbar = document.getElementById('bulkbar');
+  var copyallBtn = document.getElementById('copyall');
+  var copyallLabel = document.getElementById('copyalllabel');
+  var hidden = document.getElementById('hiddenarea');
+
+  var AGENTS = ['Yağız Ege Dokcan','Berra Yanar','Moustafa Abdalla','Khaled Elboraie','Cihan','Uğur','Nawaf Gaber'];
+  var STUDIOS = ['Atlanta','Baltimore','Buffalo','Chandler','Cleveland','Columbus','Dayton City','Fayetteville','Fort Lauderdale','Fort Myers','Indianapolis','Jacksonville','Key West','Madison','Melbourne (FL)','Oklahoma City','Pittsburgh','Raleigh','Santa Barbara','Sarasota','Seattle','St. Augustine','St. Pete','Tampa','West Palm Beach'];
+  var CHANNELS = ['Landing Page','Facebook','Mail','Instagram','TikTok','Website','Walk-In','Phone Call','Tattoo Artist Account','Other'];
+  var REASONS = ['Confirmation','Reminder','Follow-up','Booknow Lead','Regain','Pencilled-In Mail','Pencilled-In Landing','Other'];
+  var OUTCOMES = ['Scheduled','Rescheduled','Confirmed','Scheduled by Mistake','Cancelled','Wrong Number',"Didn't Pick Up",'VM Left','Potential Customer','Already Confirmed','Call Back Later','Do Not Call','Not Interested','Pending Call'];
+  var TYPES = ['Tattoo','Piercing'];
+
+  var CHANNEL_RAW_MAP = {
+    'Landing Page Design':'Landing Page','Facebook Design':'Facebook','E-Mail Design':'Mail',
+    'Instagram Design':'Instagram','TikTok Design':'TikTok','Walkin Design':'Walk-In',
+    'Phone Call Design':'Phone Call'
+  };
+  var STUDIO_RAW_MAP = {
+    'Cleopatra Ink Dayton':'Dayton City','Cleopatra Ink Chandler':'Chandler',
+    'Cleopatra Ink Jacksonville':'Jacksonville','Cleopatra Ink Fort Pierce':'Fort Pierce',
+    'Cleopatra Ink Key West':'Key West','Cleopatra Ink Melbourne':'Melbourne (FL)',
+    'Cleopatra Ink Orlando Lake Bueno Vista':'Orlando Lake','Cleopatra Ink Santa Barbara':'Santa Barbara',
+    'Cleopatra Ink St. Pete':'St. Pete','Cleopatra Ink St. Augustine':'St. Augustine',
+    'Cleopatra Ink West Palm Beach':'West Palm Beach'
+  };
+
+  var cards = [];
+  var cardSeq = 0;
+
+  function todayStr() {
+    var d = new Date();
+    return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+  }
+
+  function cleanPhone(v) {
+    var digits = (v || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+    return digits.length ? digits : 'N/A';
+  }
+
+  function normalizeDate(v) {
+    if (!v) return '';
+    var s = String(v).replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, '').trim();
+    if (!s) return '';
+    var m = s.match(/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{4})$/);
+    if (m) {
+      var a = parseInt(m[1], 10), b = parseInt(m[2], 10), y = m[3];
+      return a + '/' + b + '/' + y;
+    }
+    var m2 = s.match(/^(\d{4})[\/\.\-](\d{1,2})[\/\.\-](\d{1,2})$/);
+    if (m2) {
+      var yy = m2[1], mo = parseInt(m2[2], 10), dd = parseInt(m2[3], 10);
+      return mo + '/' + dd + '/' + yy;
+    }
+    return s;
+  }
+
+  function opts(list, selected) {
+    return list.map(function(v) {
+      return '<option value="' + v.replace(/"/g,'&quot;') + '"' + (v === selected ? ' selected' : '') + '>' + v + '</option>';
+    }).join('');
+  }
+
+  function fieldStyle() {
+    return 'width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:7px 8px; font-size:12.5px; box-sizing:border-box;';
+  }
+
+  function normalizeStudioRaw(v) {
+    if (!v) return '';
+    return v.replace(/cleopatra\s*ink\s*/i, '').trim();
+  }
+
+  function findClosest(list, value) {
+    if (!value) return null;
+    var clean = value.trim();
+    var lower = clean.toLowerCase();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].toLowerCase() === lower) return list[i];
+    }
+    for (var j = 0; j < list.length; j++) {
+      var lj = list[j].toLowerCase();
+      if (lj.indexOf(lower) !== -1 || lower.indexOf(lj) !== -1) return list[j];
+    }
+    return null;
+  }
+
+  function renderCard(card) {
+    var d = card.data;
+    var el = document.createElement('div');
+    el.style.cssText = 'background:#16171a; border:1px solid #2a2b2f; border-radius:12px; padding:14px; margin-bottom:10px;';
+    el.id = 'card-' + card.id;
+
+    var statusHtml = '';
+    if (card.status === 'loading') {
+      statusHtml = '<span style="font-size:11px; color:#8ab4ff;">Okunuyor...</span>';
+    } else if (card.status === 'error') {
+      statusHtml = '<span style="font-size:11px; color:#ff8080;">Okunamadı, elle doldur</span>';
+    } else {
+      statusHtml = '<span style="font-size:11px; color:#7ee787;">Kontrol et</span>';
+    }
+
+    el.innerHTML =
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+        '<span style="font-size:12px; color:#9a9ba0;">Kayıt #' + card.num + '</span>' +
+        '<div style="display:flex; align-items:center; gap:10px;">' + statusHtml +
+          '<button class="removebtn" data-id="' + card.id + '" type="button" style="background:none; border:none; color:#6c6d72; cursor:pointer; font-size:16px; line-height:1; padding:0;">×</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Agent</label><select class="f-agent" data-id="'+card.id+'" style="'+fieldStyle()+'">'+opts(AGENTS, d.agent)+'</select></div>' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Stüdyo</label><select class="f-studio" data-id="'+card.id+'" style="'+fieldStyle()+'">'+opts(STUDIOS, d.studio)+'</select></div>' +
+      '</div>' +
+
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Call date</label><input class="f-calldate" data-id="'+card.id+'" type="text" value="'+d.callDate+'" style="'+fieldStyle()+'"></div>' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Appt date</label><input class="f-apptdate" data-id="'+card.id+'" type="text" value="'+d.apptDate+'" placeholder="M/D/YYYY" style="'+fieldStyle()+'"></div>' +
+      '</div>' +
+
+      '<div style="margin-bottom:8px;"><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Müşteri adı</label><input class="f-name" data-id="'+card.id+'" type="text" value="'+(d.name||'').replace(/"/g,'&quot;')+'" style="'+fieldStyle()+'"></div>' +
+
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Telefon</label><input class="f-phone" data-id="'+card.id+'" type="text" value="'+(d.phone||'')+'" style="'+fieldStyle()+'"></div>' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Email</label><input class="f-email" data-id="'+card.id+'" type="text" value="'+(d.email||'')+'" style="'+fieldStyle()+'"></div>' +
+      '</div>' +
+
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Channel</label><select class="f-channel" data-id="'+card.id+'" style="'+fieldStyle()+'">'+opts(CHANNELS, d.channel)+'</select></div>' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Tür</label><select class="f-type" data-id="'+card.id+'" style="'+fieldStyle()+'">'+opts(TYPES, d.apptType)+'</select></div>' +
+      '</div>' +
+
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Call reason</label><select class="f-reason" data-id="'+card.id+'" style="'+fieldStyle()+'">'+opts(REASONS, d.reason)+'</select></div>' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Call outcome</label><select class="f-outcome" data-id="'+card.id+'" style="'+fieldStyle()+'">'+opts(OUTCOMES, d.outcome)+'</select></div>' +
+      '</div>' +
+
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Need call back</label><select class="f-callback" data-id="'+card.id+'" style="'+fieldStyle()+'"><option'+(d.callback==='No'?' selected':'')+'>No</option><option'+(d.callback==='Yes'?' selected':'')+'>Yes</option></select></div>' +
+        '<div class="cbdate-wrap" style="display:'+(d.callback==='Yes'?'block':'none')+';"><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Callback tarihi</label><input class="f-cbdate" data-id="'+card.id+'" type="text" value="'+(d.cbDate||'')+'" placeholder="M/D/YYYY" style="'+fieldStyle()+'"></div>' +
+      '</div>' +
+
+      '<div class="rowpreview" style="font-size:10.5px; color:#6c6d72; background:#1a1b1e; border-radius:6px; padding:6px 8px; word-break:break-all; line-height:1.5;"></div>';
+
+    return el;
+  }
+
+  function cleanText(v) {
+    return (v || '').replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function buildRow(d) {
+    return [
+      normalizeDate(d.callDate),
+      normalizeDate(d.apptDate),
+      cleanText(d.agent),
+      cleanText(d.studio),
+      cleanText(d.channel),
+      cleanText(d.name),
+      cleanPhone(d.phone),
+      cleanText(d.email) || 'N/A',
+      cleanText(d.apptType),
+      cleanText(d.reason),
+      cleanText(d.outcome),
+      cleanText(d.callback),
+      (d.callback === 'Yes' ? normalizeDate(d.cbDate) : '')
+    ].join(TAB);
+  }
+
+  function refreshAll() {
+    cardsWrap.innerHTML = '';
+    cards.forEach(function(card, i) {
+      card.num = i + 1;
+      cardsWrap.appendChild(renderCard(card));
+    });
+    bindCardEvents();
+    updatePreviews();
+    bulkbar.style.display = cards.length ? 'block' : 'none';
+    copyallLabel.textContent = 'Tümünü kopyala (' + cards.length + ')';
+  }
+
+  function updatePreviews() {
+    cards.forEach(function(card) {
+      var el = document.getElementById('card-' + card.id);
+      if (!el) return;
+      el.querySelector('.rowpreview').textContent = buildRow(card.data).split(TAB).join(' | ');
+    });
+  }
+
+  function bindCardEvents() {
+    var map = [
+      ['.f-agent','agent'], ['.f-studio','studio'], ['.f-calldate','callDate'],
+      ['.f-apptdate','apptDate'], ['.f-name','name'], ['.f-phone','phone'],
+      ['.f-email','email'], ['.f-channel','channel'], ['.f-type','apptType'],
+      ['.f-reason','reason'], ['.f-cbdate','cbDate']
+    ];
+    map.forEach(function(pair) {
+      document.querySelectorAll(pair[0]).forEach(function(node) {
+        node.addEventListener('input', function() {
+          var id = this.dataset.id;
+          var card = cards.filter(function(c) { return c.id === id; })[0];
+          if (card) { card.data[pair[1]] = this.value; updatePreviews(); }
+        });
+        node.addEventListener('change', function() {
+          var id = this.dataset.id;
+          var card = cards.filter(function(c) { return c.id === id; })[0];
+          if (card) { card.data[pair[1]] = this.value; updatePreviews(); }
+        });
+      });
+    });
+
+    document.querySelectorAll('.f-outcome').forEach(function(node) {
+      node.addEventListener('change', function() {
+        var id = this.dataset.id;
+        var card = cards.filter(function(c) { return c.id === id; })[0];
+        if (!card) return;
+        card.data.outcome = this.value;
+        var auto = (this.value === 'Potential Customer' || this.value === 'Call Back Later');
+        card.data.callback = auto ? 'Yes' : 'No';
+        refreshAll();
+      });
+    });
+
+    document.querySelectorAll('.f-callback').forEach(function(node) {
+      node.addEventListener('change', function() {
+        var id = this.dataset.id;
+        var card = cards.filter(function(c) { return c.id === id; })[0];
+        if (!card) return;
+        card.data.callback = this.value;
+        refreshAll();
+      });
+    });
+
+    document.querySelectorAll('.removebtn').forEach(function(node) {
+      node.addEventListener('click', function() {
+        var id = this.dataset.id;
+        cards = cards.filter(function(c) { return c.id !== id; });
+        refreshAll();
+      });
+    });
+  }
+
+  function newCard() {
+    cardSeq++;
+    var card = {
+      id: 'c' + cardSeq,
+      num: cards.length + 1,
+      status: 'loading',
+      data: {
+        agent: 'Yağız Ege Dokcan', studio: STUDIOS[0], callDate: todayStr(), apptDate: '',
+        name: '', phone: '', email: '', channel: CHANNELS[0], apptType: 'Tattoo',
+        reason: 'Confirmation', outcome: 'VM Left', callback: 'No', cbDate: ''
+      }
+    };
+    cards.push(card);
+    return card;
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result.split(',')[1]); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  var WORKER_URL = 'https://cleopatra-lp-proxy.rinelement.workers.dev/';
+
+  function processFile(file) {
+    return fileToBase64(file).then(function(base64) {
+      var mediaType = file.type || 'image/png';
+      var today = todayStr();
+      var promptText = 'Bu bir tattoo/piercing stüdyosu randevu sisteminden ekran görüntüsü. Bugünün tarihi: ' + today + '. Geçerli stüdyo isimleri şunlardır (studio alanına MUTLAKA bu listeden birini yaz, "Cleopatra Ink" önekini asla ekleme, sadece şehir adını yaz): ' + STUDIOS.join(', ') + '.\n\nÜç farklı ekran görüntüsü tipi olabilir:\n\n1) TIMELY takvim / "Edit appointment" popup\'ı (üstte "Edit appointment" başlığı, Details/Recurrence/Address/Notes/History sekmeleri, Pencilled-in/Confirmed butonu görünür, üst kısımda "Cleopatra Ink [Şehir]" yazar). Bu tipte appointment date bugünden (' + today + ') SONRA veya bugünse callReason = "Reminder", bugünden ÖNCEYSE callReason = "Follow-up".\n\n2) BookNow TEKLİ "Appointment Request" detay sayfası (Full Name, Email, Phone, Location, User\'s Local Time, Branch Time gibi alanlar var, tek müşteri, Location alanı şehir adını gösterir). Bu tipte callReason her zaman "Confirmation".\n\n3) BookNow ÇOKLU liste/tablo (Name, Contact, Location, Preferred Date/Time, Status sütunlu bir tablo, birden fazla müşteri satırı, PENDING etiketleri var). Bu tipte callReason her zaman "Confirmation" ve TÜM satırlardaki müşterileri ayrı ayrı çıkar.\n\nSADECE geçerli bir JSON ARRAY döndür, başka hiçbir metin ekleme, markdown kod bloğu kullanma. Her müşteri için bir obje:\n[{"customerName": "", "phone": "", "email": "", "studio": "yukarıdaki listeden TAM olarak biri, önek olmadan", "appointmentDate": "M/D/YYYY formatında, USER LOCAL TIME / kullanıcının kendi saatine göre, Branch Time DEĞİL", "channel": "ham booking source değeri (örn Landing Page Design, Facebook Design) varsa onu yaz, yoksa Landing Page Design yaz", "appointmentType": "Tattoo veya Piercing, servis adında piercing geçiyorsa Piercing", "callReason": "Reminder veya Follow-up veya Confirmation, yukarıdaki kurala göre"}]\n\nBilgi yoksa alanı boş string bırak. Tek müşteri olsa bile mutlaka array formatında ([{...}]) döndür.';
+
+      return fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: mediaType,
+          prompt: promptText
+        })
+      });
+    }).then(function(response) {
+      if (!response.ok) throw new Error('API hatası: ' + response.status);
+      return response.json();
+    }).then(function(data) {
+      var textBlock = '';
+      try {
+        textBlock = data.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+      } catch (e) {
+        throw new Error('Beklenmeyen cevap formatı: ' + JSON.stringify(data).slice(0, 200));
+      }
+      var cleaned = textBlock.replace(/```json|```/g, '').trim();
+      var extractedList = JSON.parse(cleaned);
+      if (!Array.isArray(extractedList)) extractedList = [extractedList];
+
+      extractedList.forEach(function(extracted) {
+        var card = newCard();
+        if (extracted.customerName) card.data.name = extracted.customerName;
+        if (extracted.phone) card.data.phone = cleanPhone(extracted.phone);
+        if (extracted.email) card.data.email = extracted.email;
+        if (extracted.appointmentDate) card.data.apptDate = extracted.appointmentDate;
+        if (extracted.studio) {
+          var cleanedStudio = normalizeStudioRaw(extracted.studio);
+          var mappedStudio = STUDIO_RAW_MAP[extracted.studio] || STUDIO_RAW_MAP['Cleopatra Ink ' + cleanedStudio] || cleanedStudio;
+          var matched = findClosest(STUDIOS, mappedStudio);
+          if (matched) card.data.studio = matched;
+        }
+        if (extracted.channel) {
+          var mappedCh = CHANNEL_RAW_MAP[extracted.channel] || extracted.channel;
+          var matchedCh = findClosest(CHANNELS, mappedCh);
+          if (matchedCh) card.data.channel = matchedCh;
+        }
+        if (extracted.appointmentType) {
+          var matchedType = findClosest(TYPES, extracted.appointmentType);
+          if (matchedType) card.data.apptType = matchedType;
+        }
+        if (extracted.callReason) {
+          var matchedReason = findClosest(REASONS, extracted.callReason);
+          if (matchedReason) card.data.reason = matchedReason;
+        }
+        card.status = 'done';
+      });
+      refreshAll();
+    }).catch(function(err) {
+      var card = newCard();
+      card.status = 'error';
+      console.error(err);
+      refreshAll();
+    });
+  }
+
+  function processFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList).filter(function(f) { return f.type.indexOf('image') === 0; });
+    var chain = Promise.resolve();
+    files.forEach(function(f, idx) {
+      chain = chain.then(function() {
+        dzIdle.style.display = 'none';
+        dzBusy.style.display = 'block';
+        dzBusy.textContent = 'İşleniyor... (' + (idx + 1) + '/' + files.length + ')';
+        return processFile(f);
+      });
+    });
+    chain = chain.then(function() {
+      dzBusy.style.display = 'none';
+      dzIdle.style.display = 'block';
+    });
+    return chain;
+  }
+
+  dropzone.addEventListener('click', function() { fileinput.click(); });
+  fileinput.addEventListener('change', function(e) {
+    if (e.target.files && e.target.files.length) processFiles(e.target.files);
+    fileinput.value = '';
+  });
+
+  document.addEventListener('paste', function(e) {
+    var items = (e.clipboardData || {}).items || [];
+    var files = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') === 0) {
+        var f = items[i].getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length) processFiles(files);
+  });
+
+  dropzone.addEventListener('dragover', function(e) { e.preventDefault(); dropzone.style.borderColor = '#3a6df0'; });
+  dropzone.addEventListener('dragleave', function() { dropzone.style.borderColor = '#3a3b40'; });
+  dropzone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropzone.style.borderColor = '#3a3b40';
+    if (e.dataTransfer.files && e.dataTransfer.files.length) processFiles(e.dataTransfer.files);
+  });
+
+  function fallbackCopy(text) {
+    hidden.value = text;
+    hidden.focus();
+    hidden.select();
+    try { document.execCommand('copy'); return true; } catch (e) { return false; }
+  }
+
+  copyallBtn.addEventListener('click', function() {
+    var allRows = cards.map(function(c) { return buildRow(c.data); }).join(NL);
+    if (!allRows) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(allRows).then(function() {
+        copyallLabel.textContent = 'Kopyalandı (' + cards.length + ')';
+        setTimeout(function() { copyallLabel.textContent = 'Tümünü kopyala (' + cards.length + ')'; }, 1500);
+      }, function() {
+        if (fallbackCopy(allRows)) {
+          copyallLabel.textContent = 'Kopyalandı (' + cards.length + ')';
+          setTimeout(function() { copyallLabel.textContent = 'Tümünü kopyala (' + cards.length + ')'; }, 1500);
+        }
+      });
+    } else if (fallbackCopy(allRows)) {
+      copyallLabel.textContent = 'Kopyalandı (' + cards.length + ')';
+      setTimeout(function() { copyallLabel.textContent = 'Tümünü kopyala (' + cards.length + ')'; }, 1500);
+    }
+  });
+
+  /* ---------- MODE TOGGLE ---------- */
+  var modeToggle = document.getElementById('modeToggle');
+  var callLogSection = document.getElementById('callLogSection');
+  var lpSection = document.getElementById('lpSection');
+  var pageTitle = document.getElementById('pageTitle');
+  var pageSub = document.getElementById('pageSub');
+  var inLpMode = false;
+
+  modeToggle.addEventListener('click', function() {
+    inLpMode = !inLpMode;
+    if (inLpMode) {
+      callLogSection.style.display = 'none';
+      lpSection.style.display = 'block';
+      pageTitle.textContent = 'Cleopatra Ink — LP & Reminder List';
+      pageSub.textContent = 'SS yükle, otomatik listeye çevir';
+      modeToggle.textContent = '← Call Log';
+    } else {
+      callLogSection.style.display = 'block';
+      lpSection.style.display = 'none';
+      pageTitle.textContent = 'Cleopatra Ink — Call Log';
+      pageSub.textContent = 'Birden fazla SS yükle, kontrol et, hepsini kopyala';
+      modeToggle.textContent = 'LP List →';
+    }
+  });
+
+  /* ---------- LP & REMINDER LIST MODE ---------- */
+  var lpDropzone = document.getElementById('lpDropzone');
+  var lpFileinput = document.getElementById('lpFileinput');
+  var lpDzIdle = document.getElementById('lpDzIdle');
+  var lpDzBusy = document.getElementById('lpDzBusy');
+  var lpEntriesWrap = document.getElementById('lpEntries');
+  var lpTextWrap = document.getElementById('lpTextWrap');
+  var lpTextOutput = document.getElementById('lpTextOutput');
+  var lpBulkbar = document.getElementById('lpBulkbar');
+  var lpCopyAllBtn = document.getElementById('lpCopyAll');
+  var lpCopyAllLabel = document.getElementById('lpCopyAllLabel');
+
+  var lpEntries = [];
+  var lpSeq = 0;
+  var lpTextOutputEdited = false;
+
+  var MONTH_NAMES = {
+    'january':'Jan','jan':'Jan','february':'Feb','feb':'Feb','march':'Mar','mar':'Mar',
+    'april':'Apr','apr':'Apr','may':'May','june':'Jun','jun':'Jun','july':'Jul','jul':'Jul',
+    'august':'Aug','aug':'Aug','september':'Sep','sept':'Sep','sep':'Sep','october':'Oct','oct':'Oct',
+    'november':'Nov','nov':'Nov','december':'Dec','dec':'Dec'
+  };
+  var MONTH_NUM = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function padDay(n) {
+    n = parseInt(n, 10);
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  function normalizeLpDate(v) {
+    if (!v) return '';
+    var s = String(v).replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, ' ').trim();
+    if (!s) return '';
+
+    var m1 = s.match(/^([A-Za-zçğıöşüÇĞİÖŞÜ]+)\.?\s+(\d{1,2})(?:,?\s*\d{4})?$/);
+    if (m1) {
+      var abbr = MONTH_NAMES[m1[1].toLowerCase()];
+      if (abbr) return abbr + ' ' + padDay(m1[2]);
+    }
+
+    var m2 = s.match(/^(\d{1,2})[\/\.\-](\d{1,2})(?:[\/\.\-]\d{2,4})?$/);
+    if (m2) {
+      var mo = parseInt(m2[1], 10), da = m2[2];
+      if (mo >= 1 && mo <= 12) return MONTH_NUM[mo - 1] + ' ' + padDay(da);
+    }
+
+    return s;
+  }
+
+  function lpFieldStyle() {
+    return 'width:100%; background:#1e1f23; color:#e8e8ea; border:1px solid #34353a; border-radius:8px; padding:7px 8px; font-size:12.5px; box-sizing:border-box;';
+  }
+
+  function lpBuildLine(d) {
+    var type = cleanText(d.apptType) || 'Tattoo';
+    var name = cleanText(d.customerName);
+    var studio = cleanText(d.studio);
+    var date = normalizeDate(cleanText(d.dateLabel));
+    var time = cleanText(d.timeLabel);
+    var email = cleanText(d.email) || 'N/A';
+    return [type, name, studio, date, time, email].join(' | ');
+  }
+
+  function lpRenderEntry(entry) {
+    var d = entry.data;
+    var el = document.createElement('div');
+    el.style.cssText = 'background:#16171a; border:1px solid #2a2b2f; border-radius:12px; padding:14px; margin-bottom:10px;';
+    el.id = 'lp-' + entry.id;
+
+    var statusHtml = entry.status === 'loading'
+      ? '<span style="font-size:11px; color:#8ab4ff;">Okunuyor...</span>'
+      : entry.status === 'error'
+        ? '<span style="font-size:11px; color:#ff8080;">Okunamadı, elle doldur</span>'
+        : '<span style="font-size:11px; color:#7ee787;">Kontrol et</span>';
+
+    el.innerHTML =
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+        '<span style="font-size:12px; color:#9a9ba0;">Kayıt #' + entry.num + '</span>' +
+        '<div style="display:flex; align-items:center; gap:10px;">' + statusHtml +
+          '<button class="lp-removebtn" data-id="' + entry.id + '" type="button" style="background:none; border:none; color:#6c6d72; cursor:pointer; font-size:16px; line-height:1; padding:0;">×</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Tür</label><select class="lp-type" data-id="'+entry.id+'" style="'+lpFieldStyle()+'">'+opts(TYPES, d.apptType)+'</select></div>' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Stüdyo</label><select class="lp-studio" data-id="'+entry.id+'" style="'+lpFieldStyle()+'">'+opts(STUDIOS, d.studio)+'</select></div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px;"><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Müşteri adı</label><input class="lp-name" data-id="'+entry.id+'" type="text" value="'+(d.customerName||'').replace(/"/g,'&quot;')+'" style="'+lpFieldStyle()+'"></div>' +
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Tarih (örn Aug 09)</label><input class="lp-date" data-id="'+entry.id+'" type="text" value="'+(d.dateLabel||'')+'" placeholder="Aug 09" style="'+lpFieldStyle()+'"></div>' +
+        '<div><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Saat (örn 5 PM)</label><input class="lp-time" data-id="'+entry.id+'" type="text" value="'+(d.timeLabel||'')+'" style="'+lpFieldStyle()+'"></div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px;"><label style="font-size:10px;color:#9a9ba0;display:block;margin-bottom:3px;">Email</label><input class="lp-email" data-id="'+entry.id+'" type="text" value="'+(d.email||'')+'" style="'+lpFieldStyle()+'"></div>' +
+      '<div class="lp-linepreview" style="font-size:10.5px; color:#6c6d72; background:#1a1b1e; border-radius:6px; padding:6px 8px; word-break:break-all; line-height:1.5;"></div>';
+
+    return el;
+  }
+
+  function lpRefreshAll() {
+    lpEntriesWrap.innerHTML = '';
+    lpEntries.forEach(function(entry, i) {
+      entry.num = i + 1;
+      lpEntriesWrap.appendChild(lpRenderEntry(entry));
+    });
+    lpBindEvents();
+    lpUpdatePreviews();
+    lpUpdateTextOutput();
+    lpBulkbar.style.display = lpEntries.length ? 'block' : 'none';
+    lpTextWrap.style.display = lpEntries.length ? 'block' : 'none';
+    lpCopyAllLabel.textContent = 'Tümünü kopyala (' + lpEntries.length + ')';
+  }
+
+  function lpUpdateTextOutput() {
+    lpTextOutput.value = lpEntries.map(function(e) { return lpBuildLine(e.data); }).join(NL + NL);
+  }
+
+  function lpUpdatePreviews() {
+    lpEntries.forEach(function(entry) {
+      var el = document.getElementById('lp-' + entry.id);
+      if (!el) return;
+      el.querySelector('.lp-linepreview').textContent = lpBuildLine(entry.data);
+    });
+    lpUpdateTextOutput();
+  }
+
+  function lpBindEvents() {
+    var map = [['.lp-type','apptType'], ['.lp-studio','studio'], ['.lp-name','customerName'], ['.lp-date','dateLabel'], ['.lp-time','timeLabel'], ['.lp-email','email']];
+    map.forEach(function(pair) {
+      document.querySelectorAll(pair[0]).forEach(function(node) {
+        node.addEventListener('input', function() {
+          var id = this.dataset.id;
+          var entry = lpEntries.filter(function(e) { return e.id === id; })[0];
+          if (entry) { entry.data[pair[1]] = this.value; lpUpdatePreviews(); }
+        });
+        node.addEventListener('change', function() {
+          var id = this.dataset.id;
+          var entry = lpEntries.filter(function(e) { return e.id === id; })[0];
+          if (entry) { entry.data[pair[1]] = this.value; lpUpdatePreviews(); }
+        });
+      });
+    });
+    document.querySelectorAll('.lp-removebtn').forEach(function(node) {
+      node.addEventListener('click', function() {
+        var id = this.dataset.id;
+        lpEntries = lpEntries.filter(function(e) { return e.id !== id; });
+        lpRefreshAll();
+      });
+    });
+  }
+
+  function lpNewEntry() {
+    lpSeq++;
+    var entry = {
+      id: 'lp' + lpSeq,
+      num: lpEntries.length + 1,
+      status: 'loading',
+      data: { apptType: 'Tattoo', studio: STUDIOS[0], customerName: '', dateLabel: '', timeLabel: '', email: '' }
+    };
+    lpEntries.push(entry);
+    return entry;
+  }
+
+  function lpProcessFile(file) {
+    return fileToBase64(file).then(function(base64) {
+      var mediaType = file.type || 'image/png';
+      var promptText = 'Bu bir tattoo/piercing stüdyosu randevu/çağrı sisteminden ekran görüntüsü. Üç tip olabilir: (a) Timely randevu ekranı, (b) BookNow randevu talebi ekranı, (c) zaten doldurulmuş bir Google Sheets tablosu/tracker (Call Date, Appt Date, Agent, Studio, Channel, Customer Name, Phone, Email, Appointment Type, Call Reason, Call Outcome gibi sütunlu, birden fazla satır). Hangi tip olursa olsun, ekrandaki HER müşteri/satır için bilgi çıkar. Geçerli stüdyo isimleri: ' + STUDIOS.join(', ') + '. Appointment date/time için USER LOCAL TIME kullan (Branch Time değil), sheets tablosunda zaman sütunu yoksa timeLabel boş bırak. ÇOK ÖNEMLİ: dateLabel alanına AY ADI YAZMA, kendi yorumunu KATMA. Sadece ekranda gördüğün randevu tarihini HAM olarak, aynen yazıldığı gibi kopyala (örnek: "08.09.2026" görüyorsan tam olarak "08.09.2026" yaz, "8/9" görüyorsan "8/9" yaz). Tarih çevirisini biz kod tarafında yapacağız, sen sadece gördüğün rakamları birebir aktar. customer name, appointment type (Tattoo veya Piercing), studio (yukarıdaki listeden tam biri, önek olmadan), appointment date HAM haliyle (dönüştürme, sadece kopyala), appointment time "H PM" ya da "H:MM PM" formatında (örnek: 5 PM, 11:30 AM) eğer varsa, email.\n\nSADECE geçerli bir JSON ARRAY döndür, başka hiçbir metin ekleme, markdown kod bloğu kullanma:\n[{"customerName": "", "apptType": "", "studio": "", "dateLabel": "", "timeLabel": "", "email": ""}]\n\nBilgi yoksa alanı boş string bırak. Tek müşteri olsa bile mutlaka array formatında döndür.';
+
+      return fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: mediaType,
+          prompt: promptText
+        })
+      });
+    }).then(function(response) {
+      if (!response.ok) throw new Error('API hatası: ' + response.status);
+      return response.json();
+    }).then(function(data) {
+      var textBlock = '';
+      try {
+        textBlock = data.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+      } catch (e) {
+        throw new Error('Beklenmeyen cevap formatı: ' + JSON.stringify(data).slice(0, 200));
+      }
+      var cleaned = textBlock.replace(/```json|```/g, '').trim();
+      var extractedList = JSON.parse(cleaned);
+      if (!Array.isArray(extractedList)) extractedList = [extractedList];
+
+      extractedList.forEach(function(extracted) {
+        var entry = lpNewEntry();
+        if (extracted.customerName) entry.data.customerName = extracted.customerName;
+        if (extracted.apptType) {
+          var matchedType = findClosest(TYPES, extracted.apptType);
+          if (matchedType) entry.data.apptType = matchedType;
+        }
+        if (extracted.studio) {
+          var cleanedStudio = normalizeStudioRaw(extracted.studio);
+          var matchedStudio = findClosest(STUDIOS, cleanedStudio) || findClosest(STUDIOS, extracted.studio);
+          if (matchedStudio) entry.data.studio = matchedStudio;
+        }
+        if (extracted.dateLabel) entry.data.dateLabel = normalizeLpDate(extracted.dateLabel);
+        if (extracted.timeLabel) entry.data.timeLabel = extracted.timeLabel;
+        if (extracted.email) entry.data.email = extracted.email;
+        entry.status = 'done';
+      });
+      lpRefreshAll();
+    }).catch(function(err) {
+      var entry = lpNewEntry();
+      entry.status = 'error';
+      console.error(err);
+      lpRefreshAll();
+    });
+  }
+
+  function lpProcessFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList).filter(function(f) { return f.type.indexOf('image') === 0; });
+    var chain = Promise.resolve();
+    files.forEach(function(f, idx) {
+      chain = chain.then(function() {
+        lpDzIdle.style.display = 'none';
+        lpDzBusy.style.display = 'block';
+        lpDzBusy.textContent = 'İşleniyor... (' + (idx + 1) + '/' + files.length + ')';
+        return lpProcessFile(f);
+      });
+    });
+    chain = chain.then(function() {
+      lpDzBusy.style.display = 'none';
+      lpDzIdle.style.display = 'block';
+    });
+    return chain;
+  }
+
+  lpDropzone.addEventListener('click', function() { lpFileinput.click(); });
+  lpFileinput.addEventListener('change', function(e) {
+    if (e.target.files && e.target.files.length) lpProcessFiles(e.target.files);
+    lpFileinput.value = '';
+  });
+  document.addEventListener('paste', function(e) {
+    if (!inLpMode) return;
+    var items = (e.clipboardData || {}).items || [];
+    var files = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') === 0) {
+        var f = items[i].getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length) lpProcessFiles(files);
+  });
+  lpDropzone.addEventListener('dragover', function(e) { e.preventDefault(); lpDropzone.style.borderColor = '#3a6df0'; });
+  lpDropzone.addEventListener('dragleave', function() { lpDropzone.style.borderColor = '#3a3b40'; });
+  lpDropzone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    lpDropzone.style.borderColor = '#3a3b40';
+    if (e.dataTransfer.files && e.dataTransfer.files.length) lpProcessFiles(e.dataTransfer.files);
+  });
+
+  lpTextOutput.addEventListener('input', function() {
+    lpTextOutputEdited = true;
+  });
+
+  lpCopyAllBtn.addEventListener('click', function() {
+    var allLines = lpTextOutput.value;
+    if (!allLines) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(allLines).then(function() {
+        lpCopyAllLabel.textContent = 'Kopyalandı (' + lpEntries.length + ')';
+        setTimeout(function() { lpCopyAllLabel.textContent = 'Tümünü kopyala (' + lpEntries.length + ')'; }, 1500);
+      }, function() {
+        if (fallbackCopy(allLines)) {
+          lpCopyAllLabel.textContent = 'Kopyalandı (' + lpEntries.length + ')';
+          setTimeout(function() { lpCopyAllLabel.textContent = 'Tümünü kopyala (' + lpEntries.length + ')'; }, 1500);
+        }
+      });
+    } else if (fallbackCopy(allLines)) {
+      lpCopyAllLabel.textContent = 'Kopyalandı (' + lpEntries.length + ')';
+      setTimeout(function() { lpCopyAllLabel.textContent = 'Tümünü kopyala (' + lpEntries.length + ')'; }, 1500);
+    }
+  });
+})();
+</script>
+</body>
+</html>
